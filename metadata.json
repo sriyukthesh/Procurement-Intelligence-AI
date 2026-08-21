@@ -1,0 +1,6 @@
+{
+  "name": "CartelX - Procurement Intelligence",
+  "description": "AI-Powered Procurement Intelligence, Bid-Collusion Detection & Company Risk Assessment Platform",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
