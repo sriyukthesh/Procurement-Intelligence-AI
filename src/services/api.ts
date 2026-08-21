@@ -9,57 +9,21 @@ import {
   AuditLog,
   RiskWeights,
   User,
-  ReportedHighRiskCompany,
 } from '../types';
 
 export const api = {
   // Auth
-  async getMe(): Promise<{ user: User | null; availableUsers: User[] }> {
+  async getMe(): Promise<{ user: User; availableUsers: User[] }> {
     const res = await fetch('/api/auth/me');
     return res.json();
   },
 
-  async login(email: string, password?: string): Promise<{ user: User; token: string }> {
+  async login(email: string, role?: string): Promise<{ user: User; token: string }> {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, role }),
     });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Failed to authenticate');
-    }
-    return res.json();
-  },
-
-  async register(data: {
-    email: string;
-    password?: string;
-    name?: string;
-    companyName?: string;
-    organization?: string;
-    cin?: string;
-    gstin?: string;
-    pan?: string;
-    state?: string;
-    industry?: string;
-    annualTurnoverCr?: number;
-    yearsInBusiness?: number;
-  }): Promise<{ user: User; company: Company; token: string }> {
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Failed to register new account');
-    }
-    return res.json();
-  },
-
-  async logout(): Promise<{ success: boolean }> {
-    const res = await fetch('/api/auth/logout', { method: 'POST' });
     return res.json();
   },
 
@@ -68,21 +32,6 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId }),
-    });
-    return res.json();
-  },
-
-  // Reported High Risk Companies (Auto reported when risk score >= 50)
-  async getReportedHighRiskCompanies(): Promise<{ total: number; reportedCompanies: ReportedHighRiskCompany[] }> {
-    const res = await fetch('/api/companies/reported-high-risk');
-    return res.json();
-  },
-
-  async reportHighRiskCompany(data: Partial<ReportedHighRiskCompany>): Promise<{ report: ReportedHighRiskCompany }> {
-    const res = await fetch('/api/companies/reported-high-risk', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
     });
     return res.json();
   },
@@ -159,17 +108,6 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return res.json();
-  },
-
-  async deleteTender(id: string): Promise<{ success: boolean; message: string; deletedTenderId: string }> {
-    const res = await fetch(`/api/tenders/${id}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Failed to delete tender');
-    }
     return res.json();
   },
 

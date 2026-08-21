@@ -182,9 +182,6 @@ companiesRouter.post('/verify-real-bidder', async (req: Request, res: Response) 
   try {
     const {
       companyName,
-      parentCompany,
-      registeredSector,
-      nicCode,
       cin,
       gstin,
       pan,
@@ -203,9 +200,6 @@ companiesRouter.post('/verify-real-bidder', async (req: Request, res: Response) 
 
     const verificationResult = await verifyRealCompanyBidder({
       companyName,
-      parentCompany,
-      registeredSector,
-      nicCode,
       cin,
       gstin,
       pan,
@@ -218,109 +212,10 @@ companiesRouter.post('/verify-real-bidder', async (req: Request, res: Response) 
       state,
     });
 
-    // Auto-report to Procurement Officer Dashboard if risk score is >= 50
-    if (verificationResult.totalScore >= 50) {
-      const reportId = `rep_${verificationResult.company.id || 'comp'}_${Date.now()}`;
-      
-      const violations: string[] = [];
-      if (verificationResult.parentCompanyOverlapDetected) {
-        violations.push(`Parent Company Collusion: ${verificationResult.parentCompanyOverlapDetails || 'Belongs to same conglomerate as competing bidder'}`);
-      }
-      if (verificationResult.sectorMismatchDetected) {
-        violations.push(`Sector Mismatch: Registered in ${verificationResult.registeredSector || 'other industry'} bidding out-of-domain`);
-      }
-      verificationResult.statutoryChecks
-        ?.filter((c) => c.status === 'FAIL' || c.status === 'WARNING')
-        .forEach((c) => violations.push(`${c.authority}: ${c.notes}`));
-
-      if (violations.length === 0) {
-        violations.push(`Composite statutory risk score exceeded safety threshold (${verificationResult.totalScore}/100)`);
-      }
-
-      db.reportedCompanies.set(reportId, {
-        id: reportId,
-        companyId: verificationResult.company.id,
-        companyName: verificationResult.company.legalName,
-        cin: verificationResult.company.cin,
-        gstin: verificationResult.company.gstin,
-        tenderId: tenderId,
-        tenderTitle: verificationResult.targetTenderSector || 'Active Public Tender',
-        riskScore: verificationResult.totalScore,
-        riskLevel: verificationResult.riskLevel,
-        primaryViolations: violations,
-        recommendation: verificationResult.allotmentRecommendation,
-        reportedAt: new Date().toISOString(),
-        reportedBy: 'Automated Statutory Verification Engine',
-        status: 'PENDING_REVIEW',
-      });
-    }
-
     res.json(verificationResult);
   } catch (err: any) {
     console.error('Real company verification error:', err);
     res.status(500).json({ error: err.message || 'Failed to verify real company.' });
   }
-});
-
-// GET /api/companies/reported-high-risk (List all companies automatically reported for risk score >= 50)
-companiesRouter.get('/reported-high-risk', (req: Request, res: Response) => {
-  const list = Array.from(db.reportedCompanies.values()).sort(
-    (a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime()
-  );
-
-  res.json({
-    total: list.length,
-    reportedCompanies: list,
-  });
-});
-
-// POST /api/companies/reported-high-risk (Manual or rule-based addition to reported list)
-companiesRouter.post('/reported-high-risk', (req: Request, res: Response) => {
-  const {
-    companyId,
-    companyName,
-    cin,
-    gstin,
-    tenderId,
-    tenderTitle,
-    riskScore,
-    riskLevel,
-    primaryViolations,
-    recommendation,
-  } = req.body;
-
-  const reportId = `rep_${companyId || 'comp'}_${Date.now()}`;
-  const record = {
-    id: reportId,
-    companyId,
-    companyName: companyName || 'Reported Entity',
-    cin,
-    gstin,
-    tenderId,
-    tenderTitle,
-    riskScore: Number(riskScore) || 50,
-    riskLevel: riskLevel || (riskScore >= 75 ? 'CRITICAL' : 'HIGH'),
-    primaryViolations: primaryViolations || ['Risk score >= 50 triggered automatic reporting'],
-    recommendation: recommendation || 'DO_NOT_ALLOT_DISQUALIFY',
-    reportedAt: new Date().toISOString(),
-    reportedBy: 'Automated Risk Engine & Bid Surveillance',
-    status: 'PENDING_REVIEW' as const,
-  };
-
-  db.reportedCompanies.set(reportId, record);
-
-  db.auditLogs.unshift({
-    id: `log_${Date.now()}`,
-    userId: 'system',
-    userName: 'CartelX Risk Monitor',
-    userRole: 'ADMIN',
-    action: 'HIGH_RISK_COMPANY_REPORTED',
-    targetType: 'COMPANY',
-    targetId: companyId || reportId,
-    details: `Automatically reported high risk entity ${record.companyName} (Risk Score: ${record.riskScore}/100) to Procurement Officer Dashboard.`,
-    timestamp: new Date().toISOString(),
-  });
-
-  res.status(201).json({ report: record });
 });
 

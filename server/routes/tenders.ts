@@ -237,29 +237,6 @@ tendersRouter.post('/:id/applications', (req: Request, res: Response) => {
 
   db.applications.set(newApp.id, newApp);
 
-  // If risk score is >= 50, automatically report to Procurement Officer Dashboard
-  if (statutoryVerificationResult && statutoryVerificationResult.totalScore >= 50) {
-    const reportId = `rep_${newApp.companyId || 'comp'}_${Date.now()}`;
-    db.reportedCompanies.set(reportId, {
-      id: reportId,
-      companyId: targetCompanyId,
-      companyName: newApp.companyName || 'Bidder Entity',
-      cin: newApp.cin,
-      gstin: newApp.gstin,
-      tenderId: tender.id,
-      tenderTitle: tender.title,
-      riskScore: statutoryVerificationResult.totalScore,
-      riskLevel: statutoryVerificationResult.riskLevel || 'HIGH',
-      primaryViolations: statutoryVerificationResult.statutoryChecks
-        ?.filter((c: any) => c.status === 'FAIL' || c.status === 'WARNING')
-        .map((c: any) => `${c.authority}: ${c.notes}`) || ['High composite risk score exceeding threshold (≥ 50/100)'],
-      recommendation: statutoryVerificationResult.allotmentRecommendation || 'DO_NOT_ALLOT_DISQUALIFY',
-      reportedAt: new Date().toISOString(),
-      reportedBy: 'Automated Statutory Risk Engine & Bid Surveillance',
-      status: 'PENDING_REVIEW',
-    });
-  }
-
   db.auditLogs.unshift({
     id: `log_${Date.now()}`,
     userId: targetCompanyId,
@@ -273,52 +250,4 @@ tendersRouter.post('/:id/applications', (req: Request, res: Response) => {
   });
 
   res.status(201).json({ application: newApp });
-});
-
-// DELETE /api/tenders/:id (Permanent tender deletion by Procurement Officer)
-tendersRouter.delete('/:id', (req: Request, res: Response) => {
-  const tenderId = req.params.id;
-  const tender = db.tenders.get(tenderId);
-
-  if (!tender) {
-    return res.status(404).json({ error: 'Tender not found or already deleted.' });
-  }
-
-  // 1. Remove all applications submitted for this tender
-  let deletedAppsCount = 0;
-  for (const [appId, app] of db.applications.entries()) {
-    if (app.tenderId === tenderId) {
-      db.applications.delete(appId);
-      deletedAppsCount++;
-    }
-  }
-
-  // 2. Remove reported company items specific to this tender
-  for (const [repId, rep] of db.reportedCompanies.entries()) {
-    if (rep.tenderId === tenderId) {
-      db.reportedCompanies.delete(repId);
-    }
-  }
-
-  // 3. Remove the tender itself
-  db.tenders.delete(tenderId);
-
-  // 4. Log permanent deletion
-  db.auditLogs.unshift({
-    id: `log_${Date.now()}`,
-    userId: 'usr_po_1',
-    userName: 'Procurement Officer',
-    userRole: 'PROCUREMENT_OFFICER',
-    action: 'TENDER_PERMANENTLY_DELETED',
-    targetType: 'TENDER',
-    targetId: tenderId,
-    details: `Permanently deleted tender "${tender.title}" (${tender.tenderId}) and purged ${deletedAppsCount} submitted bid records.`,
-    timestamp: new Date().toISOString(),
-  });
-
-  res.json({
-    success: true,
-    message: `Tender "${tender.title}" (${tender.tenderId}) has been permanently deleted along with all ${deletedAppsCount} associated bid records.`,
-    deletedTenderId: tenderId,
-  });
 });

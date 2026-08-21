@@ -12,7 +12,6 @@ import {
   RiskWeights,
   RiskThresholds,
   SourceConnectorStatus,
-  ReportedHighRiskCompany,
 } from './types.js';
 
 class InMemoryDatabase {
@@ -25,7 +24,6 @@ class InMemoryDatabase {
   legalRecords: Map<string, LegalRecord> = new Map();
   regulatoryRecords: Map<string, RegulatoryRecord> = new Map();
   debarmentRecords: Map<string, DebarmentRecord> = new Map();
-  reportedCompanies: Map<string, ReportedHighRiskCompany> = new Map();
   auditLogs: AuditLog[] = [];
 
   riskWeights: RiskWeights = {
@@ -133,7 +131,6 @@ class InMemoryDatabase {
       {
         id: 'usr_po_1',
         email: 'officer@procurement.gov.in',
-        password: 'password123',
         name: 'Rajesh Verma (Senior Procurement Officer)',
         role: 'PROCUREMENT_OFFICER',
         organization: 'National Smart Cities Mission / Ministry of Housing & Urban Affairs',
@@ -142,7 +139,6 @@ class InMemoryDatabase {
       {
         id: 'usr_admin_1',
         email: 'admin@cartelx.gov.in',
-        password: 'password123',
         name: 'Dr. Anita Desai (Director of Procurement Audit)',
         role: 'ADMIN',
         organization: 'Central Vigilance & Procurement Oversight Board',
@@ -151,7 +147,6 @@ class InMemoryDatabase {
       {
         id: 'usr_comp_1',
         email: 'bidder@contractor.in',
-        password: 'password123',
         name: 'Enterprise Bidder Representative',
         role: 'COMPANY',
         organization: 'Contractor Bidding Portal',

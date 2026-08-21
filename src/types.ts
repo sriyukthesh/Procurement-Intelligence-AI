@@ -33,29 +33,11 @@ export type FindingType =
 export interface User {
   id: string;
   email: string;
-  password?: string;
   name: string;
   role: Role;
   organization?: string;
   companyId?: string;
   createdAt: string;
-}
-
-export interface ReportedHighRiskCompany {
-  id: string;
-  companyId?: string;
-  companyName: string;
-  cin?: string;
-  gstin?: string;
-  tenderId?: string;
-  tenderTitle?: string;
-  riskScore: number;
-  riskLevel: RiskLevel;
-  primaryViolations: string[];
-  recommendation: string;
-  reportedAt: string;
-  reportedBy: string;
-  status: 'PENDING_REVIEW' | 'REVIEWED' | 'DISQUALIFIED' | 'CLEARED';
 }
 
 export interface Company {

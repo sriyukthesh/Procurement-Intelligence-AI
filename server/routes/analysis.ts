@@ -17,34 +17,6 @@ analysisRouter.post('/tenders/:id/analyze', (req: Request, res: Response) => {
       tender.status = 'ANALYZED';
     }
 
-    // Automatically report any bidder with riskScore >= 50 to the Procurement Officer Dashboard
-    if (analysis.rankedBidders && analysis.rankedBidders.length > 0) {
-      analysis.rankedBidders.forEach((bidder) => {
-        if (bidder.riskScore >= 50) {
-          const reportId = `rep_${bidder.companyId}_${tenderId}`;
-          if (!db.reportedCompanies.has(reportId)) {
-            const comp = db.companies.get(bidder.companyId);
-            db.reportedCompanies.set(reportId, {
-              id: reportId,
-              companyId: bidder.companyId,
-              companyName: bidder.companyName,
-              cin: comp?.cin,
-              gstin: comp?.gstin,
-              tenderId: tender?.id || tenderId,
-              tenderTitle: tender?.title || 'Monitored Public Tender',
-              riskScore: bidder.riskScore,
-              riskLevel: bidder.riskLevel,
-              primaryViolations: bidder.riskFactors || ['Identified as High/Critical Risk entity during tender evaluation'],
-              recommendation: bidder.recommendation || 'DO_NOT_ALLOT_DISQUALIFY',
-              reportedAt: new Date().toISOString(),
-              reportedBy: 'Bid Behavioral Surveillance & Collusion Detector',
-              status: 'PENDING_REVIEW',
-            });
-          }
-        }
-      });
-    }
-
     db.auditLogs.unshift({
       id: `log_${Date.now()}`,
       userId: 'usr_po_1',
